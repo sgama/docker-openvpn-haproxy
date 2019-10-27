@@ -1,0 +1,42 @@
+version: '3.5'
+
+networks:
+  vpn-vlan:
+    name: vpn-vlan
+
+services:
+  haproxy:
+    image: haproxy:latest
+    container_name: haproxy
+    networks:
+      - vpn-vlan
+    ports:
+      - 8888:8888
+      - 8887:8887
+    restart: always
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
+
+  vpn-proxy:
+    image: solardesigner/vpn-proxy:latest
+    container_name: vpn-proxy
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
+    dns:
+      - 9.9.9.9
+      - 1.1.1.1
+    environment:
+      OPENVPN_USERNAME: "${OPENVPN_USERNAME}"
+      OPENVPN_PASSWORD: "${OPENVPN_PASSWORD}"
+      NORDVPN_CONFIG: "${NORDVPN_CONFIG:-ca120}"
+      LOCAL_NETWORK: "${LOCAL_NETWORK:-192.168.1.0/24}"
+    expose:
+      - 8118
+    networks:
+      - vpn-vlan
+    restart: always
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
