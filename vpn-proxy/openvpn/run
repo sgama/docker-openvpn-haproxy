@@ -1,0 +1,94 @@
+#!/bin/sh
+set -e -u -o pipefail
+
+echo "$(date '+%c') ***** Starting OpenVPN + HTTP Proxy container *****"
+
+  # Check that the ovpn file is set
+  if [ -z "$OPENVPN_FILE" ]; then
+    echo "$(date '+%c') ERROR: OPENVPN_FILE is not set or is empty. Exiting."
+    exit 1
+  fi
+
+  # Check that the provider is set
+  if [ -z "$OPENVPN_PROVIDER" ]; then
+    echo "$(date '+%c') ERROR: OPENVPN_PROVIDER is not set or is empty. Exiting."
+    exit 1
+  fi
+
+  # Set all lowercase letters for the correct folder
+  OPENVPN_PROVIDER="$(echo $OPENVPN_PROVIDER | tr '[A-Z]' '[a-z]')"
+
+  # Check that the provider exists
+  OPENVPN_PROVIDER_PATH="${CONFIGDIR}/config/${OPENVPN_PROVIDER}"
+  if [ ! -d "$OPENVPN_PROVIDER_PATH" ]; then
+    echo "$(date '+%c') ERROR: OPENVPN_PROVIDER '$OPENVPN_PROVIDER' does not exist. Exiting."
+    exit 1
+  fi
+
+  # Select a random OVPN file if required
+  if [ "${OPENVPN_FILE}" = "RANDOM" ]; then
+    # Choose a random server
+    RANDOM_OVPN="$(find $OPENVPN_PROVIDER_PATH -type f -iname "*.ovpn" | shuf -n 1)"
+    OPENVPN_FILE="$(basename $RANDOM_OVPN)"
+    echo "$(date '+%c') INFO: Using random OVPN file: $OPENVPN_FILE"
+  else
+    # Confirm the OVPN file extension
+    if [ ${OPENVPN_FILE: -5} != ".ovpn" ]; then
+      echo "$(date '+%c') ERROR: OPENVPN_FILE '$OPENVPN_FILE' must end in .ovpn. Exiting."
+      exit 1
+    fi
+    echo "$(date '+%c') INFO: Using OVPN file: $OPENVPN_FILE"
+  fi
+
+  # Check that the OVPN file exists
+  OVPN_PATH="${CONFIGDIR}/config/${OPENVPN_PROVIDER}/${OPENVPN_FILE}"
+  if [ -f "$OVPN_PATH" ]; then
+    set -- "$@" '--config' "$OVPN_PATH"
+  else
+    echo "$(date '+%c') ERROR: No OpenVPN config found in $OVPN_PATH. Exiting."
+    exit 1
+  fi
+
+# To avoid specifiying a tun adapter in the CLI or compose file,
+# create a tunnel adapter in the image with mknod to make a character device in /dev
+
+  if [ ! -d "/dev/net" ]; then
+    echo "$(date '+%c') INFO: Creating network device classification in /dev"
+    mkdir /dev/net
+  fi
+  if [ ! -c "/dev/net/tun" ]; then
+    echo "$(date '+%c') INFO: Creating VPN tunnel adapter"
+    mknod -m 0666 /dev/net/tun c 10 200
+  fi
+  set -- "$@" '--dev' 'tun'
+
+# Add the username and password for the given VPN provider
+# to ${CONFIGDIR}/auth.conf and pass that path to openvpn
+
+  echo "$(date '+%c') WARNING: Authentication file, ${CONFIGDIR}/auth.conf, does not exist - creating"
+  if [ ! -z "${OPENVPN_USERNAME}" ] && [ ! -z "${OPENVPN_PASSWORD}" ]; then
+    echo "$(date '+%c') INFO: Creating authentication file from OPENVPN_USERNAME and OPENVPN_PASSWORD variables"
+    echo "${OPENVPN_USERNAME}" > "${CONFIGDIR}/auth.conf"
+    echo "${OPENVPN_PASSWORD}" >> "${CONFIGDIR}/auth.conf"
+    chmod 600 "${CONFIGDIR}/auth.conf"
+    set -- "$@" '--auth-user-pass' "${CONFIGDIR}/auth.conf"
+  else
+    if [ -z "${OPENVPN_USERNAME}" ]; then
+      echo "$(date '+%c') ERROR: OPENVPN_USERNAME not set, connot continue"
+      exit 1
+    fi
+    if [ -z "${OPENVPN_PASSWORD}" ]; then
+      echo "$(date '+%c') ERROR: OPENVPN_PASSWORD not set, connot continue"
+      exit 1
+    fi
+  fi
+
+# Start the OpenVPN server
+
+  set -- "$@" '--script-security' '2'
+  set -- "$@" '--up' "${CONFIGDIR}/bin/openvpn-up.sh"
+  set -- "$@" '--down' "${CONFIGDIR}/bin/openvpn-down.sh"
+  set -- "$@" '--auth-nocache'
+
+  echo "$(date '+%c') DEBUG: Starting openvpn $@"
+  openvpn "$@"

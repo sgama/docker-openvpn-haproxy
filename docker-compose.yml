@@ -11,26 +11,30 @@ services:
     networks:
       - vpn-vlan
     ports:
-      - 8888:8888
-      - 8887:8887
+      - "${PROXY_PORT:-8888}:8888"
+      - "${STATS_PORT:-8887}:8887"
     restart: always
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
 
   vpn-proxy:
-    image: solardesigner/vpn-proxy:latest
-    container_name: vpn-proxy
+#   image: solardesigner/vpn-proxy:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # container_name: vpn-proxy # Use docker-compose up --scale vpn-proxy=3
     cap_add:
       - NET_ADMIN
     dns:
-      - 9.9.9.9
-      - 1.1.1.1
+      - "${DNS_SERVER_1:-9.9.9.9}"
+      - "${DNS_SERVER_2:-1.1.1.1}"
     environment:
       OPENVPN_USERNAME: "${OPENVPN_USERNAME}"
       OPENVPN_PASSWORD: "${OPENVPN_PASSWORD}"
-      OPENVPN_FILE: "${OPENVPN_FILE:-nordvpn/ca120.nordvpn.com.tcp.ovpn}"
-      LOCAL_NETWORK: "${LOCAL_NETWORK:-192.168.1.0/24}"
+      OPENVPN_PROVIDER: "${OPENVPN_PROVIDER:-nordvpn}"
+      OPENVPN_FILE:     "${OPENVPN_FILE:-ca120.nordvpn.com.tcp.ovpn}"
+      LOCAL_NETWORK:    "${LOCAL_NETWORK:-192.168.1.0/24}"
     expose:
       - 8118
     networks:
