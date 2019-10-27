@@ -1,6 +1,17 @@
 #!/bin/sh
 set -e -u -o pipefail
 
+CreateTunnelAdapter(){
+   if [ ! -d "/dev/net" ]; then echo "$(date '+%c') Creating network device classification in /dev"; mkdir /dev/net; fi
+   if [ ! -c "/dev/net/tun" ]; then
+      echo "$(date '+%c') Creating VPN tunnel adapter"
+      mknod -m 0666 /dev/net/tun c 10 200
+   fi
+}
+
+echo "$(date '+%c') ***** Starting OpenVPN + HTTP Proxy container *****"
+CreateTunnelAdapter
+
 cd /app/ovpn/config/ovpn_tcp
 
 if [ -n "$NORDVPN_CONFIG" ]; then
