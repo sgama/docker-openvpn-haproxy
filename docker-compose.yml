@@ -23,15 +23,13 @@ services:
     container_name: vpn-proxy
     cap_add:
       - NET_ADMIN
-    devices:
-      - /dev/net/tun
     dns:
       - 9.9.9.9
       - 1.1.1.1
     environment:
       OPENVPN_USERNAME: "${OPENVPN_USERNAME}"
       OPENVPN_PASSWORD: "${OPENVPN_PASSWORD}"
-      NORDVPN_CONFIG: "${NORDVPN_CONFIG:-ca120}"
+      OPENVPN_FILE: "${OPENVPN_FILE:-nordvpn/ca120.nordvpn.com.tcp.ovpn}"
       LOCAL_NETWORK: "${LOCAL_NETWORK:-192.168.1.0/24}"
     expose:
       - 8118

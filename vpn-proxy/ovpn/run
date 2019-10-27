@@ -9,25 +9,27 @@ CreateTunnelAdapter(){
    fi
 }
 
+ConfigureAuthentication(){
+    if [ -n "$OPENVPN_FILE" ]; then
+        set -- "$@" '--config' "${CONFIGDIR}/config/${OPENVPN_FILE}"
+    else
+        echo "No OpenVPN config found in ${CONFIGDIR}/config/${OPENVPN_FILE}. Exiting."
+        exit 1
+    fi
+    echo "$(date '+%c') WARNING: Authentication file, ${CONFIGDIR}/auth.conf, does not exist - creating"
+    if [ ! -z "${OPENVPN_USERNAME}" ] && [ ! -z "${OPENVPN_PASSWORD}" ]; then
+        echo "$(date '+%c') Creating authentication file from OPENVPN_USERNAME and OPENVPN_PASSWORD variables"
+        echo "${OPENVPN_USERNAME}" > "${CONFIGDIR}/auth.conf"
+        echo "${OPENVPN_PASSWORD}" >> "${CONFIGDIR}/auth.conf"
+        chmod 600 "${CONFIGDIR}/auth.conf"
+        set -- "$@" '--auth-user-pass' 'auth.conf'
+    else
+        if [ -z "${OPENVPN_USERNAME}" ]; then echo "$(date '+%c') ERROR:   OPENVPN_USERNAME not set, connot continue"; exit 1; fi
+        if [ -z "${OPENVPN_PASSWORD}" ]; then echo "$(date '+%c') ERROR:   OPENVPN_PASSWORD not set, connot continue"; exit 1; fi
+    fi
+    openvpn "$@"
+}
+
 echo "$(date '+%c') ***** Starting OpenVPN + HTTP Proxy container *****"
 CreateTunnelAdapter
-
-cd /app/ovpn/config/ovpn_tcp
-
-if [ -n "$NORDVPN_CONFIG" ]; then
-  set -- "$@" '--config' "${NORDVPN_CONFIG}.nordvpn.com.tcp.ovpn"
-else
-  echo "No OpenVPN config found in `pwd`/${NORDVPN_CONFIG}.nordvpn.com.tcp.ovpn. Exiting."
-  exit 1
-fi
-if [ -n "$OPENVPN_USERNAME" -a -n "$OPENVPN_PASSWORD" ]; then
-  echo "$OPENVPN_USERNAME" > auth.conf
-  echo "$OPENVPN_PASSWORD" >> auth.conf
-  chmod 600 auth.conf
-  set -- "$@" '--auth-user-pass' 'auth.conf'
-else
-  echo "OpenVPN credentials not set. Exiting."
-  exit 1
-fi
-
-openvpn "$@"
+ConfigureAuthentication

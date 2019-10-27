@@ -3,12 +3,14 @@ LABEL maintainer="samsongama@gmail.com"
 
 ADD vpn-proxy /app
 RUN apk --update --no-cache add privoxy openvpn runit && \
+    chmod u+x /app/healthcheck.sh && \
     find /app -name run | xargs chmod u+x
 
-ENV OPENVPN_CONFIG="ca20" \
+ENV OPENVPN_FILE="ca20" \
     OPENVPN_USERNAME="" \
     OPENVPN_PASSWORD="" \
-    LOCAL_NETWORK=192.168.1.0/24
+    LOCAL_NETWORK=192.168.1.0/24 \
+    CONFIGDIR="/app/ovpn"
 
 EXPOSE 8118
 
