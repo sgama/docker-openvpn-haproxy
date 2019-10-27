@@ -3,7 +3,7 @@ LABEL maintainer="samsongama@gmail.com"
 
 ADD vpn-proxy /app
 RUN apk --update --no-cache add privoxy openvpn runit && \
-    find /app -name run | xargs chmod u+x
+    chmod u+x /app/run /app/healthcheck.sh
 
 ENV OPENVPN_CONFIG="ca20" \
     OPENVPN_USERNAME="" \
@@ -12,4 +12,7 @@ ENV OPENVPN_CONFIG="ca20" \
 
 EXPOSE 8118
 
-CMD ["runsvdir", "/app"]
+HEALTHCHECK --start-period=30s --interval=30s --timeout=10s \
+  CMD /app/healthcheck.sh
+
+ENTRYPOINT ["runsvdir", "/app"]
