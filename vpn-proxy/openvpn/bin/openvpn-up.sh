@@ -4,6 +4,5 @@ set -e -u -o pipefail
 echo "Running OpenVPN UP script"
 
 echo "VPN IP information:"
-curl -s -p "${EXIT_NODE_INFO_URL:-https://ipinfo.io/}"
-echo
+curl -s -p ipinfo.io/$4
 echo
