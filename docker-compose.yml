@@ -1,4 +1,4 @@
-version: '3.5'
+version: '2.1'
 
 networks:
   vpn-vlan:
@@ -6,26 +6,34 @@ networks:
 
 services:
   haproxy:
-    image: haproxy:latest
-    container_name: haproxy
+    build:
+      context: .
+      dockerfile: haproxy.dockerfile
     networks:
       - vpn-vlan
     ports:
-      - "${PROXY_PORT:-8888}:8888"
-      - "${STATS_PORT:-8887}:8887"
+      - "${PROXY_PORT:-8888}:5000"
+      - "${STATS_PORT:-8887}:1936"
     restart: always
     depends_on:
       - vpn-proxy
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
+    environment:
+      FRONTEND_PORT: 5000
+      FRONTEND_MODE: "http"
+      BACKENDS: "vpn-proxy"
+      BACKENDS_PORT: 8118
+      BACKENDS_MODE: "http"
+      DNS_ENABLED: "True"
+      PROXY_PROTOCOL_ENABLED: "True"
+      BALANCE: "roundrobin"
+      LOG_LEVEL: "debug"
 
   vpn-proxy:
 #   image: solardesigner/vpn-proxy:latest
     build:
       context: .
-      dockerfile: Dockerfile
-    # container_name: vpn-proxy # Use docker-compose up --scale vpn-proxy=3
+      dockerfile: vpn-proxy.dockerfile
+    container_name: vpn-proxy # Use docker-compose up --scale vpn-proxy=3
     cap_add:
       - NET_ADMIN
     dns:
@@ -42,5 +50,3 @@ services:
     networks:
       - vpn-vlan
     restart: always
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
