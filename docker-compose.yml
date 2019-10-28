@@ -23,17 +23,17 @@ services:
       BACKENDS: "vpn-proxy"
       BACKENDS_PORT: 8118
       BACKENDS_MODE: "http"
-      DNS_ENABLED: "True"
-      PROXY_PROTOCOL_ENABLED: "True"
+      DNS_ENABLED: "true"
+      PROXY_PROTOCOL_ENABLED: "false"
       BALANCE: "roundrobin"
-      LOG_LEVEL: "debug"
+      LOG_LEVEL: "info"
 
   vpn-proxy:
 #   image: solardesigner/vpn-proxy:latest
     build:
       context: .
       dockerfile: vpn-proxy.dockerfile
-    container_name: vpn-proxy # Use docker-compose up --scale vpn-proxy=3
+      # container_name: vpn-proxy # Use docker-compose up --scale vpn-proxy=3
     cap_add:
       - NET_ADMIN
     dns:

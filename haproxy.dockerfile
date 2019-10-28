@@ -1,4 +1,4 @@
-FROM haproxy:1.8.14
+FROM haproxy:2.0
 LABEL maintainer="EEA: IDM2 A-Team <eea-edw-a-team-alerts@googlegroups.com>"
 
 RUN apt-get update \
@@ -19,3 +19,4 @@ RUN apt-get update \
 
 COPY haproxy/src/haproxy.cfg /tmp/
 COPY haproxy/docker-entrypoint.sh haproxy/src/configure.py haproxy/src/track_hosts haproxy/src/track_dns /
+RUN find / -type f -name "*.sh" | xargs chmod u+x

@@ -37,10 +37,12 @@ FALL = os.environ.get('FALL', '3')
 listen_conf = Template("""
   listen stats
     bind *:$port
+    option http-use-htx
+    http-request use-service prometheus-exporter if { path /metrics }
     stats enable
-    stats uri /
-    stats hide-version
-    stats auth $auth
+    stats uri /stats
+    # stats hide-version
+    # stats auth $auth
 """)
 
 frontend_conf = Template("""
@@ -75,12 +77,12 @@ else:
   backend $backend
     mode $mode
     balance $balance
-    option forwardfor
-    http-request set-header X-Forwarded-Port %[dst_port]
-    http-request add-header X-Forwarded-Proto https if { ssl_fc }
-    option httpchk $httpchk HTTP/1.1\\r\\nHost:localhost
-    default-server inter $inter fastinter $fastinter downinter $downinter fall $fall rise $rise
-    cookie SRV_ID prefix
+    # option forwardfor
+    # http-request set-header X-Forwarded-Port %[dst_port]
+    # http-request add-header X-Forwarded-Proto https if { ssl_fc }
+    # option httpchk $httpchk HTTP/1.1\\r\\nHost:localhost
+    # default-server inter $inter fastinter $fastinter downinter $downinter fall $fall rise $rise
+    # cookie SRV_ID prefix
 """)
     cookies = ""
 
