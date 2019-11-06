@@ -1,10 +1,33 @@
 version: '2.1'
 
+# Remember:
+# export DOCKER_OPTS="--iptables=false"
+
 networks:
   vpn-vlan:
     name: vpn-vlan
 
 services:
+  chrome:
+    build:
+      context: .
+      dockerfile: chrome.dockerfile
+    networks:
+      - vpn-vlan
+    cap_add:
+      - NET_ADMIN # Needed for UFW outbound rules
+    ports:
+      - 3000:3000
+    restart: always
+    depends_on:
+      - haproxy
+    environment:
+      USE_CHROME_STABLE: 'true'
+      # Only outgoing port 5000 is exposed
+      HTTP_PROXY: "http://haproxy:5000"
+      HTTPS_PROXY: "http://haproxy:5000"
+      DEFAULT_LAUNCH_ARGS: "[ \"--proxy-server=http://haproxy:5000\" ]"
+
   haproxy:
     build:
       context: .
@@ -14,6 +37,9 @@ services:
     ports:
       - "${PROXY_PORT:-8888}:5000"
       - "${STATS_PORT:-8887}:1936"
+    expose:
+      - 5000
+      - 1936
     restart: always
     depends_on:
       - vpn-proxy
@@ -25,17 +51,15 @@ services:
       BACKENDS_MODE: "http"
       DNS_ENABLED: "true"
       PROXY_PROTOCOL_ENABLED: "false"
-      BALANCE: "roundrobin"
-      LOG_LEVEL: "info"
+      BALANCE: "source" # roundrobin
+      LOG_LEVEL: "debug"
 
   vpn-proxy:
-#   image: solardesigner/vpn-proxy:latest
     build:
       context: .
       dockerfile: vpn-proxy.dockerfile
-      # container_name: vpn-proxy # Use docker-compose up --scale vpn-proxy=3
     cap_add:
-      - NET_ADMIN
+      - NET_ADMIN # Needed for VPN tunnel adapter
     dns:
       - "${DNS_SERVER_1:-9.9.9.9}"
       - "${DNS_SERVER_2:-1.1.1.1}"
@@ -47,6 +71,6 @@ services:
       LOCAL_NETWORK:    "${LOCAL_NETWORK:-192.168.1.0/24}"
     expose:
       - 8118
+    restart: always
     networks:
       - vpn-vlan
-    restart: always
