@@ -23,9 +23,11 @@ services:
       - haproxy
     environment:
       USE_CHROME_STABLE: 'true'
+      FUNCTION_ENABLE_INCOGNITO_MODE: 'true'
       # Only outgoing port 5000 is exposed
       HTTP_PROXY: "http://haproxy:5000"
       HTTPS_PROXY: "http://haproxy:5000"
+      # This is an extremely specific format - leave spaces and quotes as they are
       DEFAULT_LAUNCH_ARGS: "[ \"--proxy-server=http://haproxy:5000\" ]"
 
   haproxy:
